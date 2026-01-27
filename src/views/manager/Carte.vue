@@ -196,12 +196,32 @@ const initMap = () => {
   // Créer la carte centrée sur Antananarivo
   map = L.map(mapContainer.value).setView([-18.8792, 47.5079], 13)
   
-  // Ajouter les tuiles du serveur local
-  L.tileLayer('http://localhost:3000/tiles/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
+  // Essayer le serveur local d'abord, fallback sur OpenStreetMap
+  const localTileUrl = 'http://localhost:3000/tiles/{z}/{x}/{y}.png'
+  const fallbackTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  
+  // Ajouter les tuiles
+  const tileLayer = L.tileLayer(localTileUrl, {
+    attribution: '© OpenStreetMap contributors | Tuiles locales Antananarivo',
     maxZoom: 18,
-    minZoom: 10
-  }).addTo(map)
+    minZoom: 10,
+    crossOrigin: true
+  })
+  
+  // Si les tuiles locales ne chargent pas, utiliser OpenStreetMap public
+  tileLayer.on('tileerror', () => {
+    console.warn('❌ Tuiles locales indisponibles, fallback sur OpenStreetMap')
+    map.removeLayer(tileLayer)
+    L.tileLayer(fallbackTileUrl, {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+      minZoom: 1
+    }).addTo(map)
+  })
+  
+  tileLayer.addTo(map)
+  
+  console.log('✓ Carte initialisée avec URL:', localTileUrl)
   
   // Ajouter les marqueurs
   addMarkers()
