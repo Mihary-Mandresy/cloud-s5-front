@@ -4,6 +4,7 @@
     <nav class="manager-nav">
       <router-link to="/manager/dashboard" class="nav-btn">Dashboard</router-link>
       <router-link to="/manager/signalements" class="nav-btn">Liste Signalements</router-link>
+      <router-link to="/manager/carte" class="nav-btn">Carte</router-link>
       <span class="nav-btn active">Détails</span>
       <button class="btn-logout" @click="logout">Déconnexion</button>
     </nav>
