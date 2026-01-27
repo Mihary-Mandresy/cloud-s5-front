@@ -4,6 +4,7 @@ import Login from '../views/Login.vue'
 import ManagerDashboard from '../views/manager/Dashboard.vue'
 import SignalementsList from '../views/manager/SignalementsList.vue'
 import SignalementDetails from '../views/manager/SignalementDetails.vue'
+import Carte from '../views/manager/Carte.vue'
 
 const routes = [
   {
@@ -38,6 +39,12 @@ const routes = [
     path: '/manager/signalements/:id',
     name: 'SignalementDetails',
     component: SignalementDetails,
+    meta: { requiresAuth: true, role: 'manager' }
+  },
+  {
+    path: '/manager/carte',
+    name: 'Carte',
+    component: Carte,
     meta: { requiresAuth: true, role: 'manager' }
   }
 ]
