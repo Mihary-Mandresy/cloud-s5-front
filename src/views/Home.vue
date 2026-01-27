@@ -4,7 +4,7 @@
     <p class="subtitle">Application de signalement routier</p>
     <h2>Choisissez votre rôle</h2>
     <div class="role-buttons">
-      <button class="btn-user" @click="selectUser">Utilisateur</button>
+      <button class="btn-user" @click="selectVisitor">Visiteur</button>
       <button class="btn-manager" @click="selectManager">Manager</button>
     </div>
   </div>
@@ -15,8 +15,8 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const selectUser = () => {
-  router.push({ name: 'Login', query: { role: 'user' } })
+const selectVisitor = () => {
+  router.push({ name: 'VisitorCarte' })
 }
 
 const selectManager = () => {
