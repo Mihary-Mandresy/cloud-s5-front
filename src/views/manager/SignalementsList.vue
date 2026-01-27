@@ -6,6 +6,9 @@
       <router-link to="/manager/signalements" class="nav-btn" active-class="active">
         Liste Signalements
       </router-link>
+      <router-link to="/manager/carte" class="nav-btn" active-class="active">
+        Carte
+      </router-link>
       <button class="btn-logout" @click="logout">Déconnexion</button>
     </nav>
     
