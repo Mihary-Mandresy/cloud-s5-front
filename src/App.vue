@@ -122,9 +122,52 @@
             </div>
           </div>
           
+          <!-- Carte de synchronisation Firebase -->
           <div class="dashboard-card sync-card">
             <h3>Synchronisation Firebase</h3>
-            <button class="btn-sync" @click="syncFirebase">Synchroniser</button>
+            <div class="sync-container">
+              <div class="sync-info">
+                <div class="sync-status">
+                  <span :class="['sync-status-icon', syncStatus]">
+                    <span v-if="syncStatus === 'loading'">⏳</span>
+                    <span v-else-if="syncStatus === 'success'">✅</span>
+                    <span v-else-if="syncStatus === 'error'">❌</span>
+                    <span v-else>🔄</span>
+                  </span>
+                  <span class="sync-status-text">{{ getSyncStatusText() }}</span>
+                </div>
+                <div class="sync-stats" v-if="lastSync">
+                  <small>Dernière synchro: {{ formatTime(lastSync) }}</small>
+                </div>
+              </div>
+              <button 
+                class="btn-sync" 
+                @click="startFirebaseSync"
+                :disabled="syncStatus === 'loading'"
+              >
+                <span v-if="syncStatus === 'loading'">Synchronisation...</span>
+                <span v-else>Synchroniser</span>
+              </button>
+              <div class="sync-details" v-if="syncDetails">
+                <p class="sync-message" :class="syncStatus">
+                  {{ syncDetails.message }}
+                </p>
+                <div class="sync-results" v-if="syncResults">
+                  <div class="sync-result-item">
+                    <span>Récupérés:</span>
+                    <span class="sync-count">{{ syncResults.retrieved || 0 }}</span>
+                  </div>
+                  <div class="sync-result-item">
+                    <span>Mis à jour:</span>
+                    <span class="sync-count">{{ syncResults.updated || 0 }}</span>
+                  </div>
+                  <div class="sync-result-item">
+                    <span>Ajoutés:</span>
+                    <span class="sync-count">{{ syncResults.added || 0 }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div class="dashboard-card notifications-card">
@@ -132,6 +175,9 @@
             <div class="notifications-list">
               <div class="notification-item" v-for="notification in notifications" :key="notification.id">
                 {{ notification.message }}
+              </div>
+              <div v-if="syncNotification" class="notification-item sync-notification">
+                {{ syncNotification }}
               </div>
             </div>
           </div>
@@ -168,6 +214,13 @@
             @click="viewMode = 'cards'"
           >
             Cartes
+          </button>
+          <button 
+            class="view-btn sync-view-btn"
+            @click="showSyncModal = true"
+            :disabled="syncStatus === 'loading'"
+          >
+            🔄 Synchroniser Firebase
           </button>
         </div>
         
@@ -308,9 +361,21 @@
           <button class="btn-back" @click="goBackToList">
             ← Retour à la liste
           </button>
-          <button class="btn-sync" @click="syncCurrentSignalement">
-            🔄 Synchroniser
-          </button>
+          <div class="details-sync-section">
+            <button 
+              class="btn-sync" 
+              @click="syncCurrentSignalement"
+              :disabled="currentSyncStatus === 'loading'"
+            >
+              <span v-if="currentSyncStatus === 'loading'">⏳ Synchronisation...</span>
+              <span v-else>🔄 Synchroniser ce signalement</span>
+            </button>
+            <div class="sync-feedback" v-if="currentSyncFeedback">
+              <span :class="['sync-feedback-text', currentSyncStatus]">
+                {{ currentSyncFeedback }}
+              </span>
+            </div>
+          </div>
         </div>
         
         <div class="details-container">
@@ -465,6 +530,129 @@
       <p>Email connecté : {{ userEmail }}</p>
       <button class="btn-logout" @click="logout">Déconnexion</button>
     </div>
+    
+    <!-- MODAL SYNCHRONISATION -->
+    <div v-if="showSyncModal" class="modal-overlay" @click="showSyncModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Synchronisation Firebase</h3>
+          <button class="modal-close" @click="showSyncModal = false">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="sync-options">
+            <h4>Options de synchronisation</h4>
+            <div class="option-group">
+              <label>
+                <input type="radio" v-model="syncOption" value="full" />
+                <span>Synchronisation complète</span>
+              </label>
+              <p class="option-description">Récupère tous les signalements depuis Firebase</p>
+            </div>
+            
+            <div class="option-group">
+              <label>
+                <input type="radio" v-model="syncOption" value="partial" />
+                <span>Synchronisation partielle</span>
+              </label>
+              <p class="option-description">Seulement les modifications récentes</p>
+            </div>
+            
+            <div class="option-group">
+              <label>
+                <input type="radio" v-model="syncOption" value="upload" />
+                <span>Envoyer les modifications</span>
+              </label>
+              <p class="option-description">Met à jour Firebase avec les changements locaux</p>
+            </div>
+          </div>
+          
+          <div class="sync-progress" v-if="syncStatus === 'loading'">
+            <div class="progress-bar">
+              <div 
+                class="progress-fill" 
+                :style="{ width: syncProgress + '%' }"
+              ></div>
+            </div>
+            <div class="progress-text">
+              Synchronisation en cours... {{ syncProgress }}%
+            </div>
+            <div class="sync-steps">
+              <div 
+                v-for="step in syncSteps" 
+                :key="step.id"
+                :class="['sync-step', { active: step.active, completed: step.completed }]"
+              >
+                {{ step.label }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="sync-result" v-if="syncStatus === 'success' || syncStatus === 'error'">
+            <div :class="['result-icon', syncStatus]">
+              <span v-if="syncStatus === 'success'">✅</span>
+              <span v-else>❌</span>
+            </div>
+            <h4>{{ syncStatus === 'success' ? 'Synchronisation réussie !' : 'Erreur de synchronisation' }}</h4>
+            <p>{{ syncDetails?.message }}</p>
+            <div v-if="syncResults" class="result-stats">
+              <div class="result-stat">
+                <span class="stat-label">Signalements récupérés:</span>
+                <span class="stat-value">{{ syncResults.retrieved }}</span>
+              </div>
+              <div class="result-stat">
+                <span class="stat-label">Mis à jour localement:</span>
+                <span class="stat-value">{{ syncResults.updated }}</span>
+              </div>
+              <div class="result-stat">
+                <span class="stat-label">Nouveaux signalements:</span>
+                <span class="stat-value">{{ syncResults.added }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button 
+            class="btn-modal-primary" 
+            @click="startSyncFromModal"
+            :disabled="syncStatus === 'loading'"
+          >
+            <span v-if="syncStatus === 'loading'">Synchronisation en cours...</span>
+            <span v-else>Démarrer la synchronisation</span>
+          </button>
+          <button 
+            class="btn-modal-secondary" 
+            @click="showSyncModal = false"
+            :disabled="syncStatus === 'loading'"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- TOAST NOTIFICATIONS -->
+    <div class="toast-container">
+      <div 
+        v-for="toast in toasts" 
+        :key="toast.id"
+        :class="['toast', toast.type]"
+        @click="removeToast(toast.id)"
+      >
+        <span class="toast-icon">
+          <span v-if="toast.type === 'success'">✅</span>
+          <span v-else-if="toast.type === 'error'">❌</span>
+          <span v-else-if="toast.type === 'warning'">⚠️</span>
+          <span v-else>ℹ️</span>
+        </span>
+        <div class="toast-content">
+          <div class="toast-title">{{ toast.title }}</div>
+          <div class="toast-message">{{ toast.message }}</div>
+        </div>
+        <button class="toast-close">×</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -490,6 +678,19 @@ const filterBudget = ref('')
 const selectedStatusForUpdate = ref('nouveau')
 const selectedSignalementId = ref(null)
 const currentSignalement = ref(null)
+
+// Synchronisation Firebase
+const syncStatus = ref('idle') // idle, loading, success, error
+const syncOption = ref('full')
+const syncProgress = ref(0)
+const syncDetails = ref(null)
+const syncResults = ref(null)
+const lastSync = ref(null)
+const showSyncModal = ref(false)
+const syncNotification = ref('')
+const currentSyncStatus = ref('idle')
+const currentSyncFeedback = ref('')
+const toasts = ref([])
 
 // Données de démonstration
 const signalements = ref([
@@ -584,6 +785,15 @@ const notifications = ref([
   { id: 2, message: "Signalement #2 en attente de validation" }
 ])
 
+// Étape de synchronisation
+const syncSteps = ref([
+  { id: 1, label: "Connexion à Firebase", active: true, completed: false },
+  { id: 2, label: "Récupération des données", active: false, completed: false },
+  { id: 3, label: "Traitement local", active: false, completed: false },
+  { id: 4, label: "Mise à jour Firebase", active: false, completed: false },
+  { id: 5, label: "Finalisation", active: false, completed: false }
+])
+
 // Computed properties
 const filteredSignalements = computed(() => {
   return signalements.value.filter(s => {
@@ -634,11 +844,210 @@ const logout = () => {
   currentSignalement.value = null
 }
 
-// Méthodes dashboard
-const syncFirebase = () => {
-  console.log('Synchronisation Firebase')
+// Méthodes de synchronisation Firebase
+const startFirebaseSync = async () => {
+  syncStatus.value = 'loading'
+  syncProgress.value = 0
+  syncDetails.value = { message: 'Initialisation de la synchronisation...' }
+  
+  // Simuler une connexion à Firebase
+  await simulateStep(1, 1000)
+  syncProgress.value = 20
+  
+  // Simuler la récupération des données
+  await simulateStep(2, 1500)
+  syncProgress.value = 40
+  
+  // Simuler le traitement local
+  await simulateStep(3, 2000)
+  syncProgress.value = 60
+  
+  // Simuler la mise à jour de Firebase
+  await simulateStep(4, 1000)
+  syncProgress.value = 80
+  
+  // Simuler la finalisation
+  await simulateStep(5, 500)
+  syncProgress.value = 100
+  
+  // Simuler des résultats
+  const newSignalements = generateMockFirebaseData()
+  const results = processSyncResults(newSignalements)
+  
+  syncResults.value = results
+  syncStatus.value = 'success'
+  lastSync.value = new Date()
+  
+  syncDetails.value = { 
+    message: `Synchronisation réussie ! ${results.added} nouveaux signalements ajoutés.` 
+  }
+  
+  // Mettre à jour les notifications
+  if (results.added > 0) {
+    syncNotification.value = `${results.added} nouveaux signalements synchronisés`
+    addToast('success', 'Synchronisation réussie', `${results.added} nouveaux signalements ajoutés`)
+  }
+  
+  // Auto-hide notification après 5 secondes
+  setTimeout(() => {
+    syncNotification.value = ''
+  }, 5000)
 }
 
+const simulateStep = (stepIndex, duration) => {
+  return new Promise(resolve => {
+    // Mettre à jour l'étape active
+    syncSteps.value.forEach((step, index) => {
+      step.active = index + 1 === stepIndex
+      if (index + 1 < stepIndex) {
+        step.completed = true
+      } else {
+        step.completed = false
+      }
+    })
+    
+    setTimeout(() => {
+      resolve()
+    }, duration)
+  })
+}
+
+const generateMockFirebaseData = () => {
+  // Simuler des données de Firebase
+  return [
+    {
+      id: 4,
+      titre: "Panneau de signalisation tombé",
+      localisation: "Boulevard Saint-Michel, Paris",
+      description: "Panneau stop tombé au sol, danger pour la circulation.",
+      statut: "nouveau",
+      budget: "faible",
+      date: "2024-01-22",
+      updatedAt: "2024-01-22",
+      historique: [
+        {
+          date: "2024-01-22",
+          action: "Signalement créé",
+          utilisateur: "citoyen@mail.com",
+          description: "Signalé via l'application mobile"
+        }
+      ],
+      piecesJointes: [
+        { nom: "photo_panneau.jpg", taille: "2.1 MB" }
+      ]
+    },
+    {
+      id: 5,
+      titre: "Trottoir endommagé",
+      localisation: "Rue de Rivoli, Paris",
+      description: "Dallage de trottoir cassé, risque de chute pour les piétons.",
+      statut: "en_cours",
+      budget: "moyen",
+      date: "2024-01-18",
+      updatedAt: "2024-01-21",
+      historique: [
+        {
+          date: "2024-01-18",
+          action: "Signalement créé",
+          utilisateur: "agent_terrain"
+        },
+        {
+          date: "2024-01-20",
+          action: "Inspection effectuée",
+          utilisateur: "technicien_ville",
+          description: "Évaluation des dégâts effectuée"
+        }
+      ],
+      piecesJointes: [
+        { nom: "photo_trottoir_1.jpg", taille: "1.8 MB" },
+        { nom: "photo_trottoir_2.jpg", taille: "1.9 MB" }
+      ]
+    }
+  ]
+}
+
+const processSyncResults = (firebaseData) => {
+  let added = 0
+  let updated = 0
+  const retrieved = firebaseData.length
+  
+  firebaseData.forEach(firebaseItem => {
+    const existingIndex = signalements.value.findIndex(s => s.id === firebaseItem.id)
+    
+    if (existingIndex === -1) {
+      // Nouveau signalement
+      signalements.value.push(firebaseItem)
+      added++
+    } else {
+      // Mise à jour existante (simuler si plus récent)
+      const localItem = signalements.value[existingIndex]
+      const firebaseDate = new Date(firebaseItem.updatedAt)
+      const localDate = new Date(localItem.updatedAt)
+      
+      if (firebaseDate > localDate) {
+        signalements.value[existingIndex] = { ...localItem, ...firebaseItem }
+        updated++
+      }
+    }
+  })
+  
+  return { retrieved, added, updated }
+}
+
+const startSyncFromModal = () => {
+  startFirebaseSync()
+}
+
+const syncCurrentSignalement = async () => {
+  if (!currentSignalement.value) return
+  
+  currentSyncStatus.value = 'loading'
+  currentSyncFeedback.value = 'Synchronisation avec Firebase...'
+  
+  // Simuler la synchronisation d'un seul signalement
+  await new Promise(resolve => setTimeout(resolve, 1500))
+  
+  // Simuler un succès
+  currentSyncStatus.value = 'success'
+  currentSyncFeedback.value = 'Signalement synchronisé avec succès!'
+  
+  addToast('success', 'Synchronisation', 'Signalement mis à jour dans Firebase')
+  
+  // Réinitialiser après 3 secondes
+  setTimeout(() => {
+    currentSyncStatus.value = 'idle'
+    currentSyncFeedback.value = ''
+  }, 3000)
+}
+
+const getSyncStatusText = () => {
+  switch(syncStatus.value) {
+    case 'loading': return 'Synchronisation en cours...'
+    case 'success': return 'Synchronisé'
+    case 'error': return 'Erreur de synchronisation'
+    default: return 'Prêt à synchroniser'
+  }
+}
+
+// Méthodes utilitaires pour les notifications toast
+const addToast = (type, title, message) => {
+  const id = Date.now()
+  toasts.value.push({ id, type, title, message })
+  
+  // Auto-remove après 5 secondes
+  setTimeout(() => {
+    removeToast(id)
+  }, 5000)
+}
+
+const removeToast = (id) => {
+  const index = toasts.value.findIndex(toast => toast.id === id)
+  if (index !== -1) {
+    toasts.value.splice(index, 1)
+  }
+}
+
+// Méthodes dashboard
 const doSearch = () => {
   console.log('Recherche:', searchQuery.value)
 }
@@ -676,10 +1085,6 @@ const viewSignalementDetails = (signalement) => {
 const goBackToList = () => {
   currentManagerPage.value = 'signalements'
   currentSignalement.value = null
-}
-
-const syncCurrentSignalement = () => {
-  console.log('Synchronisation du signalement', currentSignalement.value.id)
 }
 
 const updateSignalementStatus = () => {
@@ -794,6 +1199,10 @@ const getBudgetText = (budget) => {
 const formatDate = (dateString) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('fr-FR')
+}
+
+const formatTime = (date) => {
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
 const getSignalementsCount = (status) => {
