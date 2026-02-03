@@ -258,6 +258,9 @@ const addMarker = (signalement) => {
       <p><strong>📐</strong> Surface: ${signalement.surface} m²</p>
       <p><strong>💰</strong> Budget: ${signalement.budget.toLocaleString()}€</p>
       <p><strong>🏢</strong> ${signalement.entreprise}</p>
+
+      <button class='btn-photo'>Voir Photo(s)</button>
+
       <button class="btn-details" onclick="window.location.href='#/manager/signalements/${signalement.id}'">
         Voir détails
       </button>
@@ -527,6 +530,19 @@ const formatDate = (dateString) => {
   margin-top: 12px;
   padding: 10px;
   background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:deep(.btn-photo) {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: #6d7c86;
   color: white;
   border: none;
   border-radius: 5px;
