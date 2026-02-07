@@ -6,6 +6,7 @@ import SignalementsList from '../views/manager/SignalementsList.vue'
 import SignalementDetails from '../views/manager/SignalementDetails.vue'
 import Carte from '../views/manager/Carte.vue'
 import VisitorCarte from '../views/visitor/Carte.vue'
+import Inscription from '@/views/Inscription.vue'
 
 const routes = [
   {
@@ -17,6 +18,11 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login
+  },
+  {
+    path: '/inscription',
+    name: 'Inscription',
+    component: Inscription
   },
   {
     path: '/visiteur/carte',
