@@ -12,7 +12,7 @@
                     <div class="form-group">
                         <span class="libelle">Nom</span>
                         <label for="nom">
-                            <Icon width="20" icon="mdi:user" />
+                            <Icon width="20" icon="mdi:account-circle" />
                         </label>
                         <input type="text" id="nom">
                     </div>
