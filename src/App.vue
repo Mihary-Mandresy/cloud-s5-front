@@ -4,24 +4,8 @@
   </div>
 </template>
 
-<script setup>
-// App.vue est maintenant juste un conteneur pour le router
-</script>
-
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+<style lang="scss">
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-#app {
-  min-height: 100vh;
+  font-family: "arial" !important;
 }
 </style>
