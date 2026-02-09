@@ -7,5 +7,6 @@
 <style lang="scss">
 body {
   font-family: "arial" !important;
+  overflow: hidden;
 }
 </style>
