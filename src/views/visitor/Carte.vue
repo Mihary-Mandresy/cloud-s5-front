@@ -21,13 +21,15 @@ onMounted(async () => {
 </script>
 
 <style lang="scss">
-#map {
-  width: 100%;
-  height: 100vh;
-}
+$header-heigth: 70px;
 
-.marker {
-  cursor: pointer;
-  transform: translate(-50%, -100%);
+.visiteur {
+  
+  padding-top: $header-heigth;
+
+  #map {
+    width: 100%;
+    height: calc(100vh - $header-heigth);
+  }
 }
 </style>
