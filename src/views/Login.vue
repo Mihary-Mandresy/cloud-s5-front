@@ -93,8 +93,8 @@ import { host } from '../config.js' // Assurez-vous que le chemin est correct
 const router = useRouter()
 const route = useRoute()
 
-const email = ref('')
-const password = ref('')
+const email = ref('test@gmail.com')
+const password = ref('test1234')
 const errorMessage = ref('')
 const loading = ref(false)
 

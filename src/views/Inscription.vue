@@ -14,7 +14,7 @@
                         <label for="nom">
                             <Icon width="20" icon="mdi:account-circle" />
                         </label>
-                        <input v-model="nom"  type="text" id="nom">
+                        <input v-model="nom"  type="text" id="nom" >
                     </div>
                     <div class="form-group">
                         <span class="libelle">Email</span>
@@ -28,7 +28,7 @@
                         <label for="pwd">
                             <Icon width="20" icon="mdi:password" />
                         </label>
-                        <input v-model="mot_de_passe" type="text" id="pwd">
+                        <input v-model="mot_de_passe" placeholder="6 characteres au mois" type="text" id="pwd">
                     </div>
                     
                     <div class="error" v-if="errorMessage">
