@@ -4,7 +4,6 @@ import Login from '../views/Login.vue'
 import ManagerDashboard from '../views/manager/Dashboard.vue'
 import SignalementsList from '../views/manager/SignalementsList.vue'
 import SignalementDetails from '../views/manager/SignalementDetails.vue'
-import Carte from '../views/manager/Carte.vue'
 import VisitorCarte from '../views/visitor/Carte.vue'
 import Inscription from '@/views/Inscription.vue'
 
@@ -28,6 +27,24 @@ const routes = [
     path: '/visiteur/carte',
     name: 'VisitorCarte',
     component: VisitorCarte
+  },
+  // Route de développement: permet d'accéder directement au dashboard manager
+  // en injectant un token et le rôle 'manager' dans localStorage.
+  // NE PAS Laisser EN PRODUCTION.
+  {
+    path: '/dev/manager',
+    name: 'DevManager',
+    beforeEnter: (to, from, next) => {
+      try {
+        localStorage.setItem('token', 'dev-token-' + Date.now())
+        localStorage.setItem('userEmail', 'dev@local')
+        localStorage.setItem('userRole', 'manager')
+        localStorage.setItem('tokenExpiration', Date.now() + 24 * 3600 * 1000)
+      } catch (e) {
+        // ignore (e.g., SSR)
+      }
+      next('/manager/dashboard')
+    }
   },
   {
     path: '/manager',
@@ -53,12 +70,7 @@ const routes = [
     component: SignalementDetails,
     meta: { requiresAuth: true, role: 'manager' }
   },
-  {
-    path: '/manager/carte',
-    name: 'Carte',
-    component: Carte,
-    meta: { requiresAuth: true, role: 'manager' }
-  }
+  
 ]
 
 const router = createRouter({
