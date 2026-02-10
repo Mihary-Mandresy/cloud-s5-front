@@ -7,44 +7,37 @@
 </template>
 
 <script setup>
-import { onMounted, createApp } from "vue"
+import { onMounted, createApp, ref } from "vue"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
 import TableauComparatif from "./TableauComparatif.vue"
 import MarkerPopup from "./MarkerPopup.vue"
 import Legende from "./Legende.vue"
+import axios from "axios"
+import { host } from "@/config"
 
-const points = [
-  {
-    name: "Analakely",
-    coords: [47.5146, -18.9084],
-    date: "2025-01-12",
-    status: "nouveau",
-    surface: 1200,
-    budget: 45000000,
-    entreprise: "ENTREPRISE A"
-  },
-  {
-    name: "Ivandry",
-    coords: [47.5342, -18.8679],
-    date: "2024-11-03",
-    status: "en_cours",
-    surface: 800,
-    budget: 32000000,
-    entreprise: "ENTREPRISE B"
-  },
-  {
-    name: "Ankorondrano",
-    coords: [47.5169, -18.8765],
-    date: "2024-06-18",
-    status: "terminé",
-    surface: 1500,
-    budget: 70000000,
-    entreprise: "ENTREPRISE C"
-  }
-]
+const points = ref(null)
 
-onMounted(() => {
+// Mapping du statut numérique vers classe CSS
+const getStatusClass = (statut) => {
+  const statusMap = {
+    1: "nouveau",
+    2: "en_cours",
+    3: "terminé"
+  }  
+  return statusMap[statut] || "inconnu"
+}
+
+onMounted( async () => {
+
+  axios
+    .get(host.url.signalements)
+    .then(d => d.data)
+    .then(e => {
+      points.value = e.data
+    })
+
+
   const map = new maplibregl.Map({
     container: "map",
     style: "http://localhost:3000/styles/basic-preview/style.json",
@@ -53,10 +46,13 @@ onMounted(() => {
   })
 
   map.on("load", () => {
-    points.forEach(p => {
+    points?.value.forEach(p => {
+
+      const coords = [p.latitude, p.longitude];      
+
       // 🔴 Marker
       const el = document.createElement("div")
-      el.className = `marker status-${p.status}`
+      el.className = `marker status-${getStatusClass(p.statut)}`
 
       el.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="marker-svg" viewBox="0 0 24 24">
@@ -65,7 +61,7 @@ onMounted(() => {
       `
 
       new maplibregl.Marker({ element: el })
-        .setLngLat(p.coords)
+        .setLngLat(coords)
         .addTo(map)
 
       // Popup
@@ -79,7 +75,7 @@ onMounted(() => {
       }).setDOMContent(popupContainer)
 
       el.addEventListener("mouseenter", () => {
-        popup.setLngLat(p.coords).addTo(map)
+        popup.setLngLat(coords).addTo(map)
       })
 
       el.addEventListener("mouseleave", () => {
