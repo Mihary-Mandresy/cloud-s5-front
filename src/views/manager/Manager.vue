@@ -1,9 +1,17 @@
 <template>
-    <div class="section">
-        <h1>C'est manager</h1>
+    <div class="manager">
+        <SignalementsList />
     </div>
 </template>
 
 <script setup>
-
+import SignalementsList from './SignalementsList.vue';
 </script>
+
+<style lang="scss" scoped>
+
+.manager {
+    padding-left: $padding-x;
+    padding-right: $padding-x;
+}
+</style>
