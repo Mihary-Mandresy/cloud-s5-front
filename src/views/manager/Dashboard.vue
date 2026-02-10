@@ -1,26 +1,16 @@
 <template>
   <div class="manager-container">
-    <!-- Navigation -->
     <nav class="manager-nav">
-      <router-link to="/manager/dashboard" class="nav-btn" active-class="active">
-        Dashboard
-      </router-link>
-      <router-link to="/manager/signalements" class="nav-btn" active-class="active">
-        Liste Signalements
-      </router-link>
-      <router-link to="/manager/carte" class="nav-btn" active-class="active">
-        Carte
-      </router-link>
+      <router-link to="/manager/dashboard" class="nav-btn" active-class="active">Dashboard</router-link>
+      <router-link to="/manager/signalements" class="nav-btn" active-class="active">Liste Signalements</router-link>
       <button class="btn-logout" @click="logout">Déconnexion</button>
     </nav>
-    
-    <!-- Header -->
+
     <header class="manager-header">
       <h1>Dashboard Manager</h1>
       <p>Connecté : {{ userEmail }}</p>
     </header>
-    
-    <!-- PAGE DASHBOARD MANAGER -->
+
     <div class="dashboard-page">
       <div class="dashboard-grid">
         <div class="dashboard-card">
@@ -40,26 +30,38 @@
             </div>
           </div>
         </div>
-        
+
         <div class="dashboard-card">
           <h3>Par budget</h3>
           <div class="stats-grid">
             <div class="stat-item">
-              <div class="stat-label">0-1000€</div>
+              <div class="stat-label">Faible</div>
               <div class="stat-value">{{ getBudgetCount('faible') }}</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">1001-5000€</div>
+              <div class="stat-label">Moyen</div>
               <div class="stat-value">{{ getBudgetCount('moyen') }}</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">5000€+</div>
+              <div class="stat-label">Élevé</div>
               <div class="stat-value">{{ getBudgetCount('eleve') }}</div>
             </div>
           </div>
         </div>
-        
-        <!-- Carte de synchronisation Firebase -->
+
+        <div class="dashboard-card">
+          <h3>Backoffice — Prix par m²</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <label>Prix par m² (Ar)</label>
+            <input type="number" v-model.number="prixParM2" min="0" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:200px;" />
+            <div style="display:flex;gap:10px;align-items:center;">
+              <button class="btn-sync" @click="savePrixParM2">Enregistrer</button>
+              <small v-if="prixSaved" style="color:green">Enregistré</small>
+            </div>
+            <small style="color:#666">Valeur utilisée pour le calcul automatique du budget.</small>
+          </div>
+        </div>
+
         <div class="dashboard-card sync-card">
           <h3>Synchronisation Firebase</h3>
           <div class="sync-container">
@@ -77,18 +79,12 @@
                 <small>Dernière synchro: {{ formatTime(lastSync) }}</small>
               </div>
             </div>
-            <button 
-              class="btn-sync" 
-              @click="startFirebaseSync"
-              :disabled="syncStatus === 'loading'"
-            >
+            <button class="btn-sync" @click="startFirebaseSync" :disabled="syncStatus === 'loading'">
               <span v-if="syncStatus === 'loading'">Synchronisation...</span>
               <span v-else>Synchroniser</span>
             </button>
             <div class="sync-details" v-if="syncDetails">
-              <p class="sync-message" :class="syncStatus">
-                {{ syncDetails.message }}
-              </p>
+              <p class="sync-message" :class="syncStatus">{{ syncDetails.message }}</p>
               <div class="sync-results" v-if="syncResults">
                 <div class="sync-result-item">
                   <span>Récupérés:</span>
@@ -106,19 +102,15 @@
             </div>
           </div>
         </div>
-        
+
         <div class="dashboard-card notifications-card">
           <h3>Notifications</h3>
           <div class="notifications-list">
-            <div class="notification-item" v-for="notification in notifications" :key="notification.id">
-              {{ notification.message }}
-            </div>
-            <div v-if="syncNotification" class="notification-item sync-notification">
-              {{ syncNotification }}
-            </div>
+            <div class="notification-item" v-for="notification in notifications" :key="notification.id">{{ notification.message }}</div>
+            <div v-if="syncNotification" class="notification-item sync-notification">{{ syncNotification }}</div>
           </div>
         </div>
-        
+
         <div class="dashboard-card search-card">
           <h3>Accès rapide</h3>
           <div class="search-box">
@@ -137,38 +129,49 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const userEmail = ref(localStorage.getItem('userEmail') || '')
 
-const userEmail = computed(() => localStorage.getItem('userEmail') || '')
-const searchQuery = ref('')
-const syncStatus = ref('idle')
-const syncDetails = ref(null)
-const syncResults = ref(null)
-const lastSync = ref(null)
-const syncNotification = ref('')
-
-// Données de démonstration (TODO: remplacer par appels API)
+// Mock data (surface + niveau)
 const signalements = ref([
   {
     id: 1,
     titre: "Nid de poule sur la route principale",
+    localisation: "Rue Rainitovo, Antananarivo",
+    description: "Grand nid de poule causant des problèmes de circulation",
     statut: "nouveau",
-    budget: "moyen",
+    surface: 12.5,
+    niveau: 2,
+    date: "2024-01-15",
+    lat: -18.8792,
+    lng: 47.5079
   },
   {
     id: 2,
     titre: "Éclairage public défectueux",
+    localisation: "Avenue de l'Indépendance",
+    description: "Lampe publique hors service",
     statut: "en_cours",
-    budget: "faible",
+    surface: 5.0,
+    niveau: 1,
+    date: "2024-01-10",
+    lat: -18.8850,
+    lng: 47.5150
   },
   {
     id: 3,
     titre: "Graffiti sur mur public",
+    localisation: "Place de l'Independence",
+    description: "Graffiti sur façade de bâtiment municipal",
     statut: "termine",
-    budget: "eleve",
+    surface: 25.0,
+    niveau: 4,
+    date: "2024-01-05",
+    lat: -18.8750,
+    lng: 47.5200
   }
 ])
 
@@ -176,6 +179,24 @@ const notifications = ref([
   { id: 1, message: "Nouveau signalement reçu #4" },
   { id: 2, message: "Signalement #2 en attente de validation" }
 ])
+
+const searchQuery = ref('')
+const syncStatus = ref('idle')
+const lastSync = ref(null)
+const syncDetails = ref(null)
+const syncResults = ref(null)
+const syncNotification = ref('')
+// Backoffice price per m2 (stored in localStorage)
+const prixParM2 = ref(parseFloat(localStorage.getItem('prixParM2')) || 10000)
+const prixSaved = ref(false)
+
+const savePrixParM2 = () => {
+  localStorage.setItem('prixParM2', String(Number(prixParM2.value) || 0))
+  prixSaved.value = true
+  // Notify other parts of the app if they listen
+  try { window.dispatchEvent(new CustomEvent('prixParM2Changed', { detail: { value: Number(prixParM2.value) } })) } catch(e) {}
+  setTimeout(() => { prixSaved.value = false }, 2500)
+}
 
 const logout = () => {
   localStorage.clear()
@@ -185,19 +206,13 @@ const logout = () => {
 const startFirebaseSync = async () => {
   syncStatus.value = 'loading'
   syncDetails.value = { message: 'Initialisation de la synchronisation...' }
-  
-  // TODO: Remplacer par un vrai appel API Firebase
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
+  await new Promise(resolve => setTimeout(resolve, 1000))
   syncResults.value = { retrieved: 5, added: 2, updated: 1 }
   syncStatus.value = 'success'
   lastSync.value = new Date()
   syncDetails.value = { message: 'Synchronisation réussie !' }
   syncNotification.value = '2 nouveaux signalements synchronisés'
-  
-  setTimeout(() => {
-    syncNotification.value = ''
-  }, 5000)
+  setTimeout(() => { syncNotification.value = '' }, 5000)
 }
 
 const getSyncStatusText = () => {
@@ -209,26 +224,22 @@ const getSyncStatusText = () => {
   }
 }
 
-const formatTime = (date) => {
-  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-}
+const formatTime = (date) => date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 
-const getSignalementsCount = (status) => {
-  return signalements.value.filter(s => s.statut === status).length
-}
+const getSignalementsCount = (status) => signalements.value.filter(s => s.statut === status).length
 
 const getBudgetCount = (budget) => {
-  return signalements.value.filter(s => s.budget === budget).length
+  const prix = parseFloat(localStorage.getItem('prixParM2')) || 10000
+  return signalements.value.filter(s => {
+    const value = Math.round(prix * (s.niveau || 1) * (s.surface || 0))
+    if (budget === 'faible') return value < 1000000
+    if (budget === 'moyen') return value >= 1000000 && value < 5000000
+    return value >= 5000000
+  }).length
 }
 
-const doSearch = () => {
-  // TODO: implémenter la recherche
-  console.log('Recherche:', searchQuery.value)
-}
-
-const filterByStatus = (status) => {
-  router.push({ name: 'SignalementsList', query: { status } })
-}
+const doSearch = () => { console.log('Recherche:', searchQuery.value) }
+const filterByStatus = (status) => { router.push({ name: 'SignalementsList', query: { status } }) }
 </script>
 
 <style scoped>
