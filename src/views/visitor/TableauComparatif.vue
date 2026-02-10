@@ -81,7 +81,7 @@ import { ref } from 'vue';
 const active = ref(true)
 </script>
 
-<style lang="scss">
+<style scoped lang="scss">
 $tbl-width: 450px;
 $primary-color: #4361ee;
 $success-color: #06d6a0;
