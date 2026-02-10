@@ -4,7 +4,7 @@
     <nav class="manager-nav">
       <router-link to="/manager/dashboard" class="nav-btn">Dashboard</router-link>
       <router-link to="/manager/signalements" class="nav-btn">Liste Signalements</router-link>
-      <router-link to="/manager/carte" class="nav-btn">Carte</router-link>
+      <!-- Carte retirée côté manager -->
       <span class="nav-btn active">Détails</span>
       <button class="btn-logout" @click="logout">Déconnexion</button>
     </nav>
@@ -82,12 +82,18 @@
                   </button>
                 </div>
               </div>
-              <div class="info-item">
-                <label>Budget</label>
-                <span :class="['budget-badge', signalement.budget]">
-                  {{ getBudgetText(signalement.budget) }}
-                </span>
-              </div>
+                      <div class="info-item">
+                            <label>Budget</label>
+                            <p class="info-value">
+                              {{ computeBudget(signalement).toLocaleString() }} Ar
+                            </p>
+                          </div>
+                          <div class="info-item">
+                            <label>Niveau (1-10)</label>
+                            <select v-model.number="signalement.niveau" @change="onNiveauChange">
+                              <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
+                            </select>
+                          </div>
             </div>
           </div>
           
@@ -214,7 +220,8 @@ const mockSignalements = [
     localisation: "123 Rue Principale, Paris",
     description: "Grand nid de poule causant des problèmes de circulation. Nécessite une réparation urgente.",
     statut: "nouveau",
-    budget: "moyen",
+    surface: 12.5,
+    niveau: 2,
     date: "2024-01-15",
     updatedAt: "2024-01-20",
     historique: [
@@ -242,7 +249,8 @@ const mockSignalements = [
     localisation: "Avenue des Champs-Élysées",
     description: "Lampe publique hors service depuis plusieurs jours.",
     statut: "en_cours",
-    budget: "faible",
+    surface: 5.0,
+    niveau: 1,
     date: "2024-01-10",
     updatedAt: "2024-01-19",
     historique: [
@@ -268,7 +276,8 @@ const mockSignalements = [
     localisation: "Place de la République",
     description: "Graffiti sur façade de bâtiment municipal.",
     statut: "termine",
-    budget: "eleve",
+    surface: 25.0,
+    niveau: 4,
     date: "2024-01-05",
     updatedAt: "2024-01-17",
     historique: [
@@ -340,6 +349,25 @@ const updateStatus = () => {
     })
     
     signalement.value.statut = newStatus.value
+    signalement.value.updatedAt = new Date().toISOString().split('T')[0]
+  }
+}
+
+const getPrixParM2 = () => {
+  const v = parseFloat(localStorage.getItem('prixParM2'))
+  return isNaN(v) ? 10000 : v
+}
+
+const computeBudget = (s) => {
+  const prix = getPrixParM2()
+  const surface = Number(s.surface || 0)
+  const niveau = Number(s.niveau || 1)
+  return Math.round(prix * niveau * surface)
+}
+
+const onNiveauChange = () => {
+  // Simuler sauvegarde et mise à jour
+  if (signalement.value) {
     signalement.value.updatedAt = new Date().toISOString().split('T')[0]
   }
 }
