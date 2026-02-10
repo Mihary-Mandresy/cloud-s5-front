@@ -1,5 +1,5 @@
 <template>
-  <div class="visiteur section">
+  <div class="visiteur">
     <div id="map"></div>
     <legende />
     <TableauComparatif />
