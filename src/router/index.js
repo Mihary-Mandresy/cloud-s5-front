@@ -5,6 +5,8 @@ import VisitorCarte from '../views/visitor/Carte.vue'
 import Inscription from '@/views/Inscription.vue'
 import MainView from '@/views/MainView.vue'
 import Manager from '@/views/manager/Manager.vue'
+import UserBlock from '@/views/manager/UserBlock.vue'
+import ModifSignalement from '@/views/manager/ModifSignalement.vue'
 
 const routes = [
   {
@@ -34,7 +36,9 @@ const routes = [
     path: "/manager",
     component: MainView,
     children: [
-      {path: "", name: "manager", component: Manager}
+      {path: "", name: "manager", component: Manager},
+      {path: "userblocked", name: "userblocke", component: UserBlock},
+      {path: ":id/modif", component: ModifSignalement}
     ]
   }
 ]
