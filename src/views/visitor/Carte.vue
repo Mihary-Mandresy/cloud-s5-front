@@ -1,5 +1,5 @@
 <template>
-  <div class="visiteur">
+  <div class="visiteur section">
     <div id="map"></div>
     <legende />
     <TableauComparatif />
@@ -91,15 +91,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-.visiteur {
-  padding-top: $header-heigth;
-
-  #map {
-    width: 100%;
-    height: calc(100vh - $header-heigth);
-  }
-}
-
 .marker {
   cursor: pointer;
 
@@ -124,5 +115,17 @@ onMounted(() => {
 
 .status-terminé {
   color: #16a34a;
+}
+</style>
+
+<style lang="scss">
+.section {
+  padding-top: $header-heigth;
+}
+
+#map,
+.section {
+  width: 100%;
+  height: calc(100vh - $header-heigth);
 }
 </style>
