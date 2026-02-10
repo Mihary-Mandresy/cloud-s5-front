@@ -17,12 +17,12 @@
                     <Icon width="28" icon="mdi:chart-scatter-plot" />
                 </div>
                 <div class="grd-content">
-                    <h3 class="grd-title">Points</h3>
-                    <span class="nb">6,000,000,000</span>
+                    <h3 class="grd-title">Signalements</h3>
+                    <span class="nb">{{ totalSignalements }}</span>
                 </div>
                 <div class="grd-trend">
                     <Icon width="18" icon="mdi:trending-up" />
-                    <span class="trend-text">+12.5%</span>
+                    <span class="trend-text">+{{ percentageNouveau }}%</span>
                 </div>
             </div>
 
@@ -32,11 +32,11 @@
                 </div>
                 <div class="grd-content">
                     <h3 class="grd-title">Surface</h3>
-                    <span class="nb">1,500 km²</span>
+                    <span class="nb">{{ totalSurface.toFixed(2) }} m²</span>
                 </div>
                 <div class="grd-trend">
                     <Icon width="18" icon="mdi:trending-neutral" />
-                    <span class="trend-text">Stable</span>
+                    <span class="trend-text">Total</span>
                 </div>
             </div>
 
@@ -46,14 +46,14 @@
                 </div>
                 <div class="grd-content">
                     <h3 class="grd-title">Avancement</h3>
-                    <span class="nb">78%</span>
+                    <span class="nb">{{ avancementMoyen.toFixed(1) }}%</span>
                     <div class="progress-bar">
-                        <div class="progress-fill"></div>
+                        <div class="progress-fill" :style="{ width: avancementMoyen + '%' }"></div>
                     </div>
                 </div>
-                <div class="grd-trend positive">
-                    <Icon width="18" icon="mdi:clock-fast" />
-                    <span class="trend-text">En avance</span>
+                <div class="grd-trend" :class="{ positive: avancementMoyen > 50, negative: avancementMoyen <= 50 }">
+                    <Icon width="18" :icon="avancementMoyen > 50 ? 'mdi:clock-fast' : 'mdi:clock-alert'" />
+                    <span class="trend-text">{{ avancementMoyen > 50 ? 'En avance' : 'En retard' }}</span>
                 </div>
             </div>
 
@@ -63,11 +63,11 @@
                 </div>
                 <div class="grd-content">
                     <h3 class="grd-title">Budget</h3>
-                    <span class="nb">€4.2M</span>
+                    <span class="nb">{{ formatBudget(totalBudget) }}</span>
                 </div>
-                <div class="grd-trend negative">
+                <div class="grd-trend" :class="{ negative: totalBudget > 100000 }">
                     <Icon width="18" icon="mdi:alert-circle" />
-                    <span class="trend-text">Surveiller</span>
+                    <span class="trend-text">{{ totalBudget > 100000 ? 'Élevé' : 'Normal' }}</span>
                 </div>
             </div>
         </div>
@@ -76,9 +76,55 @@
 
 <script setup>
 import { Icon } from '@iconify/vue';
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
+import { host } from '@/config';
 
-const active = ref(true)
+const active = ref(true);
+const signalements = ref([]);
+
+// Charge les signalements depuis l'API
+onMounted(async () => {
+    try {
+        const response = await axios.get(host.url.signalements);
+        signalements.value = response.data.data || [];
+        console.log('✓ Signalements chargés:', signalements.value.length);
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des signalements:', error);
+    }
+});
+
+// Statistiques calculées
+const totalSignalements = computed(() => signalements.value.length);
+
+const totalSurface = computed(() => {
+    return signalements.value.reduce((sum, s) => sum + parseFloat(s.surface_m2 || 0), 0);
+});
+
+const totalBudget = computed(() => {
+    return signalements.value.reduce((sum, s) => sum + parseFloat(s.budget || 0), 0);
+});
+
+const avancementMoyen = computed(() => {
+    if (signalements.value.length === 0) return 0;
+    const sum = signalements.value.reduce((acc, s) => acc + parseFloat(s.avancement || 0), 0);
+    return sum / signalements.value.length;
+});
+
+const percentageNouveau = computed(() => {
+    if (totalSignalements.value === 0) return 0;
+    const nouveaux = signalements.value.filter(s => s.statut === 1).length;
+    return Math.round((nouveaux / totalSignalements.value) * 100);
+});
+
+const formatBudget = (amount) => {
+    if (amount >= 1000000) {
+        return (amount / 1000000).toFixed(1) + ' M Ar';
+    } else if (amount >= 1000) {
+        return (amount / 1000).toFixed(1) + ' K Ar';
+    }
+    return amount.toFixed(0) + ' Ar';
+};
 </script>
 
 <style scoped lang="scss">
