@@ -10,13 +10,13 @@ import ModifSignalement from '@/views/manager/ModifSignalement.vue'
 
 const routes = [
   {
-    path: '/',
+    path: '/home',
     name: 'Home',
     component: Home
   },
   {
-    path: '/login',
-    name: 'Login',
+    path: '/',
+    name: 'Login', 
     component: Login
   },
   {

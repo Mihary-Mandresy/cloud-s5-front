@@ -24,25 +24,25 @@
           <h1 class="text-5xl text-center">Connexion</h1>
         </div>
 
-        <form @submit.prevent="" class="form">
+        <form @submit.prevent="login" class="form">
           <div class="form-group">
             <span class="libelle">Email</span>
             <label for="mail">
               <Icon width="20" icon="mdi:email" />
             </label>
-            <input type="mail" id="mail">
+            <input v-model="email" type="mail" id="mail" >
           </div>
           <div class="form-group">
             <span class="libelle">Mot de passe</span>
             <label for="pwd">
               <Icon width="20" icon="mdi:password" />
             </label>
-            <input type="mail" id="pwd">
+            <input v-model="password"  type="mail" id="pwd" @keyup.enter="login">
           </div>
 
-          <div class="error">
+          <div v-if="errorMessage" class="error">
             <p class="text-center  text-red-500">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Quae similique ipsum consequuntur impedit sed?
+             {{ errorMessage }}
             </p>
           </div>
 
@@ -73,10 +73,10 @@
             </div>
           </div>
 
-          <button class="btn bg-gray-200 view">
+          <RouterLink to="/visiteur" class="btn bg-gray-200 view">
             <Icon icon="mdi:eye" />
             En tant que Visiteur
-          </button>
+          </RouterLink>
         </form>
       </div>
     </div>
@@ -86,8 +86,9 @@
 
 <script setup>
 import { Icon } from '@iconify/vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { host } from '../config.js' // Assurez-vous que le chemin est correct
 
 const router = useRouter()
 const route = useRoute()
@@ -95,61 +96,73 @@ const route = useRoute()
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
-const selectedRole = ref('user')
-
-const roleText = computed(() => {
-  return selectedRole.value === 'manager' ? 'Manager' : 'Utilisateur'
-})
+const loading = ref(false)
 
 onMounted(() => {
-  selectedRole.value = route.query.role || 'user'
-  // Pré-remplir pour la démo (à retirer en production)
-  if (selectedRole.value === 'manager') {
-    email.value = 'admin@example.com'
-    password.value = 'admin123'
-  } else {
-    email.value = 'user@example.com'
-    password.value = 'user123'
-  }
+  // Optionnel: Pré-remplir pour les tests (à retirer en production)
+  // email.value = 'test@example.com'
+  // password.value = 'password123'
 })
 
 const login = async () => {
   errorMessage.value = ''
-
+  
+  // Validation des champs
   if (!email.value || !password.value) {
     errorMessage.value = 'Veuillez remplir tous les champs'
     return
   }
 
-  // TODO: Remplacer par un vrai appel API
-  // const response = await fetch('/api/login', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ email: email.value, password: password.value })
-  // })
+  // Validation de l'email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value)) {
+    errorMessage.value = 'Veuillez entrer un email valide'
+    return
+  }
 
-  // Simulation pour l'instant
+  loading.value = true
+
   try {
-    // Mock authentication
-    const mockToken = 'mock-jwt-token-' + Date.now()
-    localStorage.setItem('token', mockToken)
-    localStorage.setItem('userEmail', email.value)
-    localStorage.setItem('userRole', selectedRole.value)
-    localStorage.setItem('tokenExpiration', Date.now() + 3600000) // 1 heure
+    const response = await fetch(host.url.login, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value
+      })
+    })
 
-    // Redirection selon le rôle
-    if (selectedRole.value === 'manager') {
-      router.push('/manager/dashboard')
+    const data = await response.json()
+
+    if (data.success) {
+      // Stockage du token et des informations utilisateur
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('token_type', data.token_type)
+      localStorage.setItem('token_expires_in', data.expires_in)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      localStorage.setItem('login_time', Date.now())
+      
+      // Stockage du token pour les futures requêtes API
+      sessionStorage.setItem('auth_token', data.token)
+      
+      // Redirection vers la page d'accueil
+      router.push('/manager')
     } else {
-      router.push('/') // TODO: route utilisateur
+      errorMessage.value = data.message || 'Identifiants incorrects'
     }
   } catch (error) {
-    errorMessage.value = 'Erreur de connexion'
+    console.error('Erreur de connexion:', error)
+    errorMessage.value = 'Erreur de connexion au serveur. Veuillez réessayer.'
+  } finally {
+    loading.value = false
   }
 }
 
-const goBack = () => {
-  router.push('/')
+const goToHome = () => {
+  router.push('/home')
 }
 </script>
 
