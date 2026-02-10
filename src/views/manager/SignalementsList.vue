@@ -6,9 +6,7 @@
       <router-link to="/manager/signalements" class="nav-btn" active-class="active">
         Liste Signalements
       </router-link>
-      <router-link to="/manager/carte" class="nav-btn" active-class="active">
-        Carte
-      </router-link>
+      <!-- Carte retirée côté manager -->
       <button class="btn-logout" @click="logout">Déconnexion</button>
     </nav>
     
@@ -82,6 +80,7 @@
                 <th>Titre</th>
                 <th>Localisation</th>
                 <th>Statut</th>
+                <th>Niveau</th>
                 <th>Budget</th>
                 <th>Date</th>
                 <th>Actions</th>
@@ -98,8 +97,13 @@
                   </span>
                 </td>
                 <td>
-                  <span :class="['budget-badge', signalement.budget]">
-                    {{ getBudgetText(signalement.budget) }}
+                  <select v-model.number="signalement.niveau" @change="onNiveauChange(signalement)">
+                    <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
+                  </select>
+                </td>
+                <td>
+                  <span class="budget-value">
+                    {{ computeBudget(signalement).toLocaleString() }} Ar
                   </span>
                 </td>
                 <td>{{ formatDate(signalement.date) }}</td>
@@ -126,13 +130,19 @@
                 </span>
               </div>
             </div>
-            <div class="card-content">
+              <div class="card-content">
               <h4 class="card-title">{{ signalement.titre }}</h4>
               <p class="card-location">{{ signalement.localisation }}</p>
               <p class="card-budget">
-                <span :class="['budget-badge', signalement.budget]">
-                  {{ getBudgetText(signalement.budget) }}
+                <span class="budget-value">
+                  {{ computeBudget(signalement).toLocaleString() }} Ar
                 </span>
+              </p>
+              <p>
+                <label>Niveau: </label>
+                <select v-model.number="signalement.niveau" @change="onNiveauChange(signalement)">
+                  <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
+                </select>
               </p>
               <p class="card-date">{{ formatDate(signalement.date) }}</p>
             </div>
@@ -186,7 +196,8 @@ const signalements = ref([
     localisation: "123 Rue Principale, Paris",
     description: "Grand nid de poule causant des problèmes de circulation.",
     statut: "nouveau",
-    budget: "moyen",
+    surface: 12.5,
+    niveau: 2,
     date: "2024-01-15",
     newStatus: "nouveau"
   },
@@ -196,7 +207,8 @@ const signalements = ref([
     localisation: "Avenue des Champs-Élysées",
     description: "Lampe publique hors service depuis plusieurs jours.",
     statut: "en_cours",
-    budget: "faible",
+    surface: 5.0,
+    niveau: 1,
     date: "2024-01-10",
     newStatus: "en_cours"
   },
@@ -206,11 +218,31 @@ const signalements = ref([
     localisation: "Place de la République",
     description: "Graffiti sur façade de bâtiment municipal.",
     statut: "termine",
-    budget: "eleve",
+    surface: 25.0,
+    niveau: 4,
     date: "2024-01-05",
     newStatus: "termine"
   }
 ])
+
+// Prix par m2 défini côté backoffice — simulé ici via localStorage
+const getPrixParM2 = () => {
+  const v = parseFloat(localStorage.getItem('prixParM2'))
+  return isNaN(v) ? 10000 : v // valeur par défaut 10 000 Ar
+}
+
+const computeBudget = (s) => {
+  const prix = getPrixParM2()
+  const surface = Number(s.surface || 0)
+  const niveau = Number(s.niveau || 1)
+  return Math.round(prix * niveau * surface)
+}
+
+const budgetCategoryFromValue = (value) => {
+  if (value < 1000000) return 'faible'
+  if (value < 5000000) return 'moyen'
+  return 'eleve'
+}
 
 const filteredSignalements = computed(() => {
   return signalements.value.filter(s => {
@@ -219,7 +251,8 @@ const filteredSignalements = computed(() => {
       s.localisation.toLowerCase().includes(filterText.value.toLowerCase())
     
     const matchesStatus = !filterStatus.value || s.statut === filterStatus.value
-    const matchesBudget = !filterBudget.value || s.budget === filterBudget.value
+    const budgetValue = computeBudget(s)
+    const matchesBudget = !filterBudget.value || budgetCategoryFromValue(budgetValue) === filterBudget.value
     
     return matchesText && matchesStatus && matchesBudget
   })
@@ -265,6 +298,12 @@ const updateCardStatus = (signalement) => {
   console.log('Statut mis à jour:', signalement.statut)
 }
 
+const onNiveauChange = (signalement) => {
+  // Simuler sauvegarde côté serveur
+  signalement.updatedAt = new Date().toISOString().split('T')[0]
+  console.log('Niveau mis à jour pour', signalement.id, '=>', signalement.niveau)
+}
+
 const getStatusText = (status) => {
   const statusMap = {
     'nouveau': 'Nouveau',
@@ -276,9 +315,9 @@ const getStatusText = (status) => {
 
 const getBudgetText = (budget) => {
   const budgetMap = {
-    'faible': '0-1000€',
-    'moyen': '1001-5000€',
-    'eleve': '5000€+'
+    'faible': 'Faible',
+    'moyen': 'Moyen',
+    'eleve': 'Élevé'
   }
   return budgetMap[budget] || budget
 }
